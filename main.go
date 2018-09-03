@@ -1,29 +1,25 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 )
 
-type whoiam struct {
-	Addr string
-}
-
 func main() {
 
 	url := ""
-
-	if "" != os.Getenv("BROKER_URL") {
-		url = os.Getenv("BROKER_URL")
-	}
-
 	username := ""
 	password := ""
 	endpoint := ""
 
+	if "" != os.Getenv("BROKER_URL") {
+		url = os.Getenv("BROKER_URL")
+	}
 	if "" != os.Getenv("BROKER_USERNAME") {
 		username = os.Getenv("BROKER_USERNAME")
 	}
@@ -35,6 +31,7 @@ func main() {
 	}
 
 	basic := "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
+
 	log.Printf("Target %s.", url)
 
 	req, err := http.NewRequest("GET", url+endpoint, nil)
@@ -46,10 +43,22 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
 	defer resp.Body.Close()
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	println("You are " + string(body))
+
+	// println("Response: " + string(body))
+
+	var prettyJSON bytes.Buffer
+	error := json.Indent(&prettyJSON, body, "", "\t")
+	if error != nil {
+		println("JSON parse error: ", error)
+		return
+	}
+
+	println("Response: ", string(prettyJSON.Bytes()))
 }
